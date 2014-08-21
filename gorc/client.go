@@ -18,17 +18,18 @@ type Protocol struct {
 	body   string
 }
 
-func parseStreaam(stream string) *Protocol {
+func parseStream(stream string) *Protocol {
 	replaced := strings.Replace(stream, SCHEMA, "", 1)
 	splited := strings.Split(replaced, ",")
 	f := splited[0]
 	b := splited[1]
 
-	return &Protocol{
-		schema: SCHEMA,
-		from:   strings.Split(f, ":")[1],
-		body:   util.Base64Decode(strings.Split(b, ":")[1]),
-	}
+	proto := new(Protocol)
+	proto.schema = SCHEMA
+	proto.from = strings.Split(f, ":")[1]
+	proto.body = util.Base64Decode(strings.Split(b, ":")[1])
+
+	return proto
 }
 
 func toSendableData(from string, input string) string {
@@ -52,7 +53,7 @@ func (client *Client) Read() {
 		input, _ := client.reader.ReadString('\n')
 		if len(input) <= 2 {
 			if len(client.name) <= 0 {
-				client.incoming <- NAME_PROMPT
+				client.outgoing <- NAME_PROMPT
 			}
 			continue
 		}

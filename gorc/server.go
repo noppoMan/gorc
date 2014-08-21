@@ -11,7 +11,7 @@ type Server struct {
 
 func (server *Server) Broadcast(data string) {
 	for _, client := range server.clients {
-		parsed := parseStreaam(data)
+		parsed := parseStream(data)
 		if client.name == parsed.from {
 			continue
 		}
