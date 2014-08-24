@@ -5,40 +5,7 @@ import (
 	"net"
 	"strings"
 	"time"
-
-	"github.com/noppoman/gorc/util"
 )
-
-const NAME_PROMPT string = "Enter Your name: "
-const SCHEMA string = "gorc://"
-
-type Protocol struct {
-	schema string
-	from   string
-	body   string
-}
-
-func parseStream(stream string) *Protocol {
-	replaced := strings.Replace(stream, SCHEMA, "", 1)
-	splited := strings.Split(replaced, ",")
-	f := splited[0]
-	b := splited[1]
-
-	proto := new(Protocol)
-	proto.schema = SCHEMA
-	proto.from = strings.Split(f, ":")[1]
-	proto.body = util.Base64Decode(strings.Split(b, ":")[1])
-
-	return proto
-}
-
-func toSendableData(from string, input string) string {
-	return SCHEMA +
-		"from:" +
-		from +
-		",body:" +
-		util.Base64Encode(strings.Join([]string{"Sent From:" + from, "Date:" + time.Now().Format(time.ANSIC), input}, "\n")) + "\n\n"
-}
 
 type Client struct {
 	name     string
@@ -53,7 +20,7 @@ func (client *Client) Read() {
 		input, _ := client.reader.ReadString('\n')
 		if len(input) <= 2 {
 			if len(client.name) <= 0 {
-				client.outgoing <- NAME_PROMPT
+				client.outgoing <- "Enter Your name: "
 			}
 			continue
 		}
@@ -63,7 +30,12 @@ func (client *Client) Read() {
 			continue
 		}
 
-		client.incoming <- toSendableData(client.name, input)
+		// TODO implement quit command.
+
+		client.incoming <- new(Protocol).Initialize(map[string]interface{}{
+			"From": client.name,
+			"Body": input,
+		}).JsonStringify()
 	}
 }
 
@@ -82,7 +54,7 @@ func (client *Client) Listen() {
 func (client *Client) OnLogin() {
 	client.outgoing <- "Hello! gorc\n"
 	client.outgoing <- "Today is " + time.Now().Format(time.ANSIC) + "\n\n\n"
-	client.outgoing <- NAME_PROMPT
+	client.outgoing <- "Enter Your name: "
 }
 
 func CreateClient(connection net.Conn) *Client {

@@ -10,13 +10,13 @@ type Server struct {
 }
 
 func (server *Server) Broadcast(data string) {
+	proto := new(Protocol).Parse(data)
 	for _, client := range server.clients {
-		parsed := parseStream(data)
-		if client.name == parsed.from {
+		if client.name == proto.From {
 			continue
 		}
 		//send message
-		client.outgoing <- parsed.body
+		client.outgoing <- proto.Dispfy()
 	}
 }
 
