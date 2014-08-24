@@ -9,8 +9,7 @@ type Server struct {
 	outgoing chan string
 }
 
-func (server *Server) Broadcast(data string) {
-	proto := new(Protocol).Parse(data)
+func (server *Server) Broadcast(proto *Protocol) {
 	for _, client := range server.clients {
 		if client.name == proto.From {
 			continue
@@ -35,7 +34,16 @@ func (server *Server) Listen() {
 		for {
 			select {
 			case data := <-server.incoming:
-				server.Broadcast(data)
+				proto := NewProtocolFromString(data)
+				if proto.IsQuit() {
+					for _, client := range server.clients {
+						if client.sesId == proto.SesId {
+							client.conn.Close()
+						}
+					}
+					continue
+				}
+				server.Broadcast(proto)
 			case conn := <-server.joins:
 				server.Join(conn)
 			}

@@ -7,8 +7,12 @@ import (
 	"time"
 )
 
+var sesid int = 0
+
 type Client struct {
+	sesId    string
 	name     string
+	conn     net.Conn
 	incoming chan string
 	outgoing chan string
 	reader   *bufio.Reader
@@ -18,7 +22,8 @@ type Client struct {
 func (client *Client) Read() {
 	for {
 		input, _ := client.reader.ReadString('\n')
-		if len(input) <= 2 {
+		data := strings.Replace(input, "\r\n", "", 1)
+		if len(data) <= 0 {
 			if len(client.name) <= 0 {
 				client.outgoing <- "Enter Your name: "
 			}
@@ -26,15 +31,14 @@ func (client *Client) Read() {
 		}
 
 		if len(client.name) <= 0 {
-			client.name = strings.Replace(input, "\n", "", 1)
+			client.name = data
 			continue
 		}
 
-		// TODO implement quit command.
-
-		client.incoming <- new(Protocol).Initialize(map[string]interface{}{
-			"From": client.name,
-			"Body": input,
+		client.incoming <- NewProtocol(map[string]interface{}{
+			"From":  client.name,
+			"Body":  data,
+			"SesId": client.sesId,
 		}).JsonStringify()
 	}
 }
@@ -61,11 +65,15 @@ func CreateClient(connection net.Conn) *Client {
 	writer := bufio.NewWriter(connection)
 	reader := bufio.NewReader(connection)
 
+	sesid++
+
 	client := &Client{
+		sesId:    string(sesid),
 		incoming: make(chan string),
 		outgoing: make(chan string),
 		reader:   reader,
 		writer:   writer,
+		conn:     connection,
 	}
 
 	client.Listen()
